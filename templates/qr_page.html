@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pay via UPI — Order {{ order_id }}</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background:#f6f6f7;
+         margin:0; display:flex; justify-content:center; padding:24px; }
+  .card { background:#fff; border-radius:12px; padding:28px; max-width:380px;
+          width:100%; text-align:center; box-shadow:0 2px 12px rgba(0,0,0,.08); }
+  h2 { margin:0 0 6px; font-size:20px; }
+  .amount { font-size:32px; font-weight:700; margin:8px 0 16px; }
+  img.qr { width:240px; height:240px; border:1px solid #eee; border-radius:8px; }
+  .btn { display:block; margin:16px 0 8px; padding:14px; border-radius:8px;
+         background:#5c6ac4; color:#fff; text-decoration:none; font-weight:600; }
+  .status { margin-top:12px; font-size:14px; color:#666; }
+  .paid { color:#008060; font-weight:700; font-size:18px; }
+  .hint { font-size:13px; color:#999; margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <h2>Pay via UPI</h2>
+  <div class="amount">{{ currency }} {{ amount }}</div>
+  {% if qr_base64 %}
+  <img class="qr" src="data:image/png;base64,{{ qr_base64 }}" alt="UPI QR">
+  {% endif %}
+  {% if upi_link %}
+  <a class="btn" href="{{ upi_link }}">Open UPI App</a>
+  {% endif %}
+  <div class="status" id="status">⏳ Waiting for payment…</div>
+  <div class="hint">Pay the exact amount from any UPI app. This page updates automatically once paid.</div>
+</div>
+<script>
+const token = "{{ token }}";
+async function check() {
+  try {
+    const r = await fetch("/api/pay_status/" + token);
+    const j = await r.json();
+    if (j.status === "paid") {
+      document.getElementById("card").innerHTML =
+        '<h2 class="paid">✅ Payment received!</h2>' +
+        '<p>Your order is confirmed. Thank you!</p>';
+      return;
+    }
+  } catch(e) {}
+  setTimeout(check, 5000);
+}
+{% if status == "paid" %}
+document.getElementById("card").innerHTML =
+  '<h2 class="paid">✅ Payment received!</h2><p>Your order is confirmed. Thank you!</p>';
+{% else %}
+check();
+{% endif %}
+</script>
+</body>
+</html>
