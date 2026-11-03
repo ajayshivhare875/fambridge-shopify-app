@@ -315,3 +315,42 @@ def pay_status(token):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")))
+
+# ---------------- test mode (no Shopify needed) ----------------
+@app.route("/test", methods=["GET", "POST"])
+def test_page():
+    if request.method == "POST":
+        try:
+            amount = float(request.form.get("amount", "10"))
+        except Exception:
+            amount = 10.0
+        note = f"test_{int(time.time())}"
+        try:
+            fb = FamBridgeClient(FAMBRIDGE_API_KEY or "test",
+                                 FAMBRIDGE_BASE or "https://fambridge-gateway.onrender.com")
+            fb_order = fb.create_order(amount, note)
+        except Exception as e:
+            return f"<h3>Error creating order:</h3><p>{e}</p><p>Make sure FAMBRIDGE_API_KEY is set in Render env vars.</p>", 500
+        pay_token = secrets.token_urlsafe(16)
+        orders = load_orders()
+        orders[pay_token] = {
+            "shop": "test",
+            "shopify_order_id": note,
+            "fambridge_order_id": fb_order["order_id"],
+            "amount": amount,
+            "currency": "INR",
+            "qr_base64": fb_order.get("qr_base64", ""),
+            "upi_link": fb_order.get("upi_link", ""),
+            "status": "pending",
+            "created": int(time.time()),
+        }
+        save_orders(orders)
+        return redirect(f"/pay/{pay_token}")
+    return Response(
+        "<h2>FamBridge Shopify App — Test Mode</h2>"
+        "<p>No Shopify needed. Create a test payment:</p>"
+        "<form method='post'>"
+        "Amount (INR): <input type='number' name='amount' value='10' step='0.01' min='1'>"
+        "<button type='submit'>Generate QR</button>"
+        "</form>",
+        mimetype="text/html")
