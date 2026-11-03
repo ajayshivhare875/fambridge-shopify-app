@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: fambridge-shopify-app
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: SHOPIFY_API_KEY
+        sync: false
+      - key: SHOPIFY_API_SECRET
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: FAMBRIDGE_API_KEY
+        sync: false
+      - key: FAMBRIDGE_BASE
+        value: https://fambridge-gateway.onrender.com
